@@ -1,5 +1,5 @@
 """
-SerpAPI client for flight searches.
+SerpAPI client for legal document searches.
 """
 import asyncio
 import json
@@ -27,9 +27,65 @@ async def run_search(params: Dict[str, Any]):
         logger.exception(f"SerpAPI search error: {str(e)}")
         return {"error": str(e)}
 
+def prepare_legal_search_params(analysis: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Prepare parameters for a legal document search.
+    
+    Args:
+        analysis: Contract analysis results containing location, type, and key terms
+        
+    Returns:
+        Dictionary of parameters for SerpAPI Google search
+    """
+    # Build search query based on analysis
+    query_parts = []
+    
+    # Add contract type with specific document formats
+    contract_type = analysis.get("contract_type", "contract")
+    query_parts.append(f'"{contract_type} contract" filetype:pdf OR filetype:doc OR filetype:docx')
+    
+    # Add location if specified
+    location = analysis.get("location", "")
+    if location and location != "Location not specified":
+        query_parts.append(f'"{location}"')
+    
+    # Add key terms
+    key_terms = analysis.get("key_terms", [])
+    if key_terms and key_terms != ["Standard contract terms"]:
+        # Add most relevant terms
+        for term in key_terms[:2]:  # Limit to avoid too long query
+            if len(term) > 3:  # Skip very short terms
+                query_parts.append(f'"{term}"')
+    
+    # Add legal-specific search terms and document sources
+    legal_terms = [
+        "agreement template",
+        "legal document sample",
+        "contract form",
+        "site:sec.gov OR site:courts.gov OR site:justia.com OR site:findlaw.com OR site:lawinsider.com OR site:contractstandards.com"
+    ]
+    query_parts.extend(legal_terms)
+    
+    # Build final query
+    query = " ".join(query_parts)
+    
+    params = {
+        "api_key": SERP_API_KEY,
+        "engine": "google",
+        "q": query,
+        "hl": "en",
+        "gl": "us",
+        "num": 15,  # Increase number of results
+        "filter": "1"  # Enable filtering for better results
+    }
+    
+    logger.debug(f"Legal search query: {query}")
+    return params
+
+# Keep the old function for backward compatibility (in case it's used elsewhere)
 def prepare_flight_search_params(origin: str, destination: str, outbound_date: str, return_date: str = None) -> Dict[str, Any]:
     """
-    Prepare parameters for a flight search.
+    Prepare parameters for a flight search (deprecated - kept for compatibility).
     
     Args:
         origin: Departure airport code

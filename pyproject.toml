@@ -3,9 +3,9 @@ requires = ["setuptools>=65.5.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mcp-flight-search"
+name = "mcp-legal-search"
 version = "0.2.0"
-description = "Flight search service implementing  Model Context Protocol (MCP) tools"
+description = "Legal contract search service implementing Model Context Protocol (MCP) tools"
 readme = "README.md"
 authors = [
     {name = "Arjun Prabhulal", email = "code.aicloudlab@gmail.com"}

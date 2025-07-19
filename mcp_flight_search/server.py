@@ -8,7 +8,7 @@ accessed by Claude and other MCP-compatible AI models.
 from mcp.server.fastmcp import FastMCP
 import argparse
 from mcp_flight_search.utils.logging import logger
-from mcp_flight_search.services.search_service import search_flights
+from mcp_flight_search.services.search_service import analyze_and_search_contracts
 from mcp_flight_search.config import DEFAULT_PORT, DEFAULT_CONNECTION_TYPE
 
 def create_mcp_server(port=DEFAULT_PORT):
@@ -38,23 +38,20 @@ def register_tools(mcp):
         mcp: The MCP server instance
     """
     @mcp.tool()
-    async def search_flights_tool(origin: str, destination: str, outbound_date: str, return_date: str = None):
+    async def analyze_legal_contract_tool(contract_text: str):
         """
-        Search for flights using SerpAPI Google Flights.
+        Analyze a legal contract and search for similar documents.
         
-        This MCP tool allows AI models to search for flight information by specifying
-        departure and arrival airports and travel dates.
+        This MCP tool allows AI models to analyze legal contract text and find similar
+        contracts based on location, type, and content analysis.
         
         Args:
-            origin: Departure airport code (e.g., ATL, JFK)
-            destination: Arrival airport code (e.g., LAX, ORD)
-            outbound_date: Departure date (YYYY-MM-DD)
-            return_date: Return date for round trips (YYYY-MM-DD)
+            contract_text: The full text of the legal contract to analyze
             
         Returns:
-            A list of available flights with details
+            A dictionary containing contract analysis and list of similar documents
         """
-        return await search_flights(origin, destination, outbound_date, return_date)
+        return await analyze_and_search_contracts(contract_text)
 
     @mcp.tool()
     def server_status():
@@ -66,7 +63,7 @@ def register_tools(mcp):
         Returns:
             A status message indicating the server is online
         """
-        return {"status": "online", "message": "MCP Flight Search server is running"}
+        return {"status": "online", "message": "MCP Legal Search server is running"}
     
     logger.debug("Model Context Protocol tools registered")
 
