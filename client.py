@@ -47,7 +47,17 @@ async def run():
             of the State of California.
             """
             
-            prompt = f"Analyze this legal contract and find similar documents:\n\n{contract_text}"
+            prompt = f"""Analyze this legal contract and find similar documents. 
+
+When you receive the search results, please include specific clickable links in your response. Format each link as:
+- Title with clickable description
+- Direct URL
+- Relevance score
+
+Contract to analyze:
+{contract_text}
+
+Please provide a comprehensive analysis and include all found links with their specific URLs so users can click directly to access the documents."""
             await session.initialize()
             # Remove debug prints
 
@@ -114,12 +124,60 @@ async def run():
                     try:
                         import json
                         result_data = json.loads(result_text)
+                        
+                        # Extract and display clickable links if available
+                        if isinstance(result_data, dict) and "similar_contracts" in result_data:
+                            print("\n=== CLICKABLE LINKS FOUND ===")
+                            for i, contract in enumerate(result_data["similar_contracts"][:10], 1):
+                                if isinstance(contract, dict):
+                                    title = contract.get("title", "Untitled")
+                                    url = contract.get("url", "")
+                                    clickable_desc = contract.get("clickable_description", "")
+                                    relevance = contract.get("relevance_score", "Unknown")
+                                    
+                                    print(f"\n{i}. {clickable_desc}")
+                                    print(f"   Title: {title}")
+                                    print(f"   URL: {url}")
+                                    print(f"   Relevance: {relevance}")
+                            print("=== END CLICKABLE LINKS ===\n")
+                        
                     except (json.JSONDecodeError, TypeError):
                         result_data = result_text
                 else:
                     result_data = "No result returned"
                 
                 # Send the function result back to Gemini for final response
+                # Prepare the response data as a dictionary for FunctionResponse
+                if isinstance(result_data, dict) and "similar_contracts" in result_data:
+                    # Create an enhanced response with formatted links
+                    enhanced_response = {
+                        "analysis": "Contract analysis completed successfully",
+                        "similar_contracts": result_data.get("similar_contracts", []),
+                        "clickable_links": []
+                    }
+                    
+                    # Format the clickable links for Gemini
+                    for i, contract in enumerate(result_data["similar_contracts"][:10], 1):
+                        if isinstance(contract, dict):
+                            title = contract.get("title", "Untitled")
+                            url = contract.get("url", "")
+                            clickable_desc = contract.get("clickable_description", "")
+                            relevance = contract.get("relevance_score", "Unknown")
+                            
+                            enhanced_response["clickable_links"].append({
+                                "number": i,
+                                "title": title,
+                                "url": url,
+                                "clickable_description": clickable_desc,
+                                "relevance_score": relevance
+                            })
+                else:
+                    # If not the expected format, convert to dict
+                    enhanced_response = {
+                        "analysis": "Search completed",
+                        "result": result_data if isinstance(result_data, str) else str(result_data)
+                    }
+                
                 conversation = [
                     types.Content(role="user", parts=[types.Part(text=prompt)]),
                     response.candidates[0].content,  # Gemini's response with function call
@@ -128,10 +186,11 @@ async def run():
                         parts=[types.Part(
                             function_response=types.FunctionResponse(
                                 name=function_call.name,
-                                response=result_data
+                                response=enhanced_response
                             )
                         )]
-                    )
+                    ),
+                    types.Content(role="user", parts=[types.Part(text="Please provide your analysis and make sure to include all the specific clickable links with their URLs from the search results. Format each link clearly with the title, URL, and relevance score. For each link, include: 1) The clickable description, 2) The full URL, 3) The relevance score.")])
                 ]
                 
                 # Get final response from Gemini
