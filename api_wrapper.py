@@ -3,6 +3,7 @@ REST API wrapper for MCP Legal Search functionality.
 Deploy this as a separate microservice and call from your main app.
 """
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, List
 from dotenv import load_dotenv
@@ -13,6 +14,14 @@ from mcp_flight_search.services.search_service import analyze_and_search_contrac
 load_dotenv()
 
 app = FastAPI(title="Legal Search API", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],  
+    allow_headers=["*"],  
+)
 
 class ContractAnalysisRequest(BaseModel):
     contract_text: str
