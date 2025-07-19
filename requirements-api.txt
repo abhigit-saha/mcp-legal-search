@@ -1,0 +1,5 @@
+# Additional requirements for the API wrapper
+fastapi
+uvicorn[standard]==0.24.0
+pydantic
+
